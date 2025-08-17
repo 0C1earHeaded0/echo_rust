@@ -1,3 +1,6 @@
+mod help;
+
+use crate::help::show_help;
 use std::{char, env};
 
 #[repr(u8)]
@@ -8,19 +11,18 @@ enum Keys {
 
 fn main() {
     let mut argv: Vec<String> = env::args().collect();
+
+    if argv.iter().len() == 1 {
+        show_help();
+    }
+
     process_argv(&mut argv);
-    // for i in 1..argv.len() {
-    //     print!("{} ", argv[i]);
-    //     if i == argv.len() - 1 {
-    //         println!();
-    //     }
-    // }
 }
 
 fn process_argv(argv: &mut Vec<String>) {
     let mut key_bit_mask: u8 = 0;
-    for i in 1..argv.len() {
-        let non_formatted_output = argv[i..].join(" ");
+
+    'outer_loop: for i in 1..argv.len() {
         if argv[i].chars().nth(0) == Some('-') {
             for j in 1..argv[i].len() {
                 let chr: char = match argv[i].chars().nth(j) {
@@ -31,27 +33,33 @@ fn process_argv(argv: &mut Vec<String>) {
                 match recognize_key(chr) {
                     Some(key) => {
                         change_key_mask(&mut key_bit_mask, key);
+                    }
+                    None => {
+                        break 'outer_loop
                     },
-                    None => println!("{}", non_formatted_output),
                 }
             }
             argv[i] = String::new();
         }
     }
 
-    if (key_bit_mask & Keys::AllowEscape as u8) != 0 {
-        let mut str = argv[1..].join(" ");
-        str = str.replace(r"\n", "\n");
-        str = str.replace(r"\t", "\t");
-        println!("{}", str.trim_start());
-    } else if (key_bit_mask & Keys::CancelNewLine as u8) != 0 {
-        print!("{}", argv[1..].join(" ").trim_start());
-    } else {
-        println!("{}", argv[1..].join(" ").trim());
-    }
+    print_output(argv, key_bit_mask);
 }
 
+fn print_output(argv: &Vec<String>, key_bit_mask: u8) {
+    let mut str = String::from(argv[1..].join(" ").trim());
 
+    if (key_bit_mask & Keys::AllowEscape as u8) != 0 {
+        str = str.replace(r"\n", "\n");
+        str = str.replace(r"\t", "\t");
+    } 
+    
+    if (key_bit_mask & Keys::CancelNewLine as u8) != 0 {
+        print!("{}", str);
+    } else {
+        println!("{}", str);
+    }
+}
 
 fn change_key_mask(mask: &mut u8, key: Keys) {
     match key {
