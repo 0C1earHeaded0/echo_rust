@@ -1,2 +1,2 @@
 # echo_rust
-Trying to implement my own "echo" command
+Implementation of my own "echo" command using rust
